@@ -65,8 +65,7 @@ int main(int argc, char **argv)
 		for (;;) {
 			struct sockaddr_in client_addr;
         		socklen_t client_addr_length = sizeof(client_addr);
-        		// 接受连接请求，返回一个新的socket(描述符)，这个新socket用于同连接的客户端通信
-        		// accept函数会把连接到的客户端信息写到client_addr中
+        		// receive connection request, and return a new socket which is used to connet to client
         		int new_server_socket_fd = accept(listen_sock, (struct sockaddr*)&client_addr, &addr_len);
         		if(new_server_socket_fd < 0){
             			perror("Server Accept Failed:");
@@ -84,13 +83,13 @@ int main(int argc, char **argv)
 			}
 
 
-			// 然后从buffer(缓冲区)拷贝到file_name中
+			// Copy from buffer to file_name 
         		char file_name[FILE_NAME_MAX_SIZE+1];
         		bzero(file_name, FILE_NAME_MAX_SIZE+1);
         		strncpy(file_name, buffer, strlen(buffer)>FILE_NAME_MAX_SIZE?FILE_NAME_MAX_SIZE:strlen(buffer));
         		printf("%s\n", file_name);
         
-        		// 打开文件并读取文件数据
+        		// open the file and read data
         		FILE *fp = fopen(file_name, "r");
         		if(NULL == fp){
             			printf("File:%s Not Found\n", file_name);
@@ -98,7 +97,7 @@ int main(int argc, char **argv)
         	    		bzero(buffer, BUFFER_SIZE);
             			int length = 0;
             			int allCount = 0;
-            			// 每读取一段数据，便将其发送给客户端，循环直到文件读完为止
+            			// Each time read a piece of data and send to client until the end
             			while((length = (int)fread(buffer, sizeof(char), BUFFER_SIZE, fp)) > 0){
                 			if(send(new_server_socket_fd, buffer, length, 0) < 0){
                     			printf("Send File:%s Failed./n", file_name);
@@ -107,11 +106,11 @@ int main(int argc, char **argv)
                 			allCount++;
                 			bzero(buffer, BUFFER_SIZE);
             			}
-            		// 关闭文件
+            		// close the file 
             		fclose(fp);
             		printf("File:%s Transfer Successful! 共%dK\n", file_name,allCount);
         		}
-        		// 关闭与客户端的连接
+        		// close the connection to client
         		close(new_server_socket_fd);							
 
 
