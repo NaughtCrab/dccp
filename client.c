@@ -6,10 +6,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <errno.h>
+#include <libgen.h>	//basename
 
 #include "dccp.h"
-#define BUFFER_SIZE 1024
-#define FILE_NAME_MAX_SIZE 512
+#define BUFFER_SIZE 4096
 
 int error_exit(const char *str)
 {
@@ -17,10 +17,12 @@ int error_exit(const char *str)
 	exit(errno);
 }
 
+void sendfile(FILE *fp, int socket_fd);
+
 int main(int argc, char *argv[])
 {
-	if (argc < 4) {
-		printf("Usage: ./client <server address> <port> <service code> " "<message 1> [message 2] ... \n");
+	if (argc < 5) {
+		printf("Usage: ./client <server address> <port> <service code> <file name> \n");
 		exit(-1);
 	}
 	struct sockaddr_in server_addr = {
@@ -43,60 +45,56 @@ int main(int argc, char *argv[])
 
 	if (connect(socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)))
 		error_exit("connect");
-
+	/*
 	// Get the maximum packet size
 	uint32_t mps;
 	socklen_t res_len = sizeof(mps);
 	if (getsockopt(socket_fd, SOL_DCCP, DCCP_SOCKOPT_GET_CUR_MPS, &mps, &res_len))
 		error_exit("getsockopt(DCCP_SOCKOPT_GET_CUR_MPS)");
 	printf("Maximum Packet Size: %d\n", mps);
+	*/
+
+	// Get the file name
+	char *filename = basename(argv[4]);
+	if(filename == NULL) {
+		error_exit("File is not exist");
+	}
+	printf("The File Name is: %s\n", filename);
+
+	// Send the file name (size of name should be same as buffer size)
+	char buffer[BUFFER_SIZE];
+	bzero(buffer, BUFFER_SIZE);
+	strncpy(buffer, filename, strlen(filename));
+	if(send(socket_fd, buffer, BUFFER_SIZE, 0) < 0) {
+		error_exit("Failed to send file name");
+	}
 	
-
-	// Input Filename, and put it in the buffer waiting to send
-    	char file_name[FILE_NAME_MAX_SIZE];
-    	char file_save_name[FILE_NAME_MAX_SIZE];
-    	bzero(file_name, FILE_NAME_MAX_SIZE+1);
-    	printf("Please Input File Name On Server:\t");
-     	gets(file_name);
-    	printf("Please Input File Name to save On Client:\t");
-     	gets(file_save_name);
-    
-    	char buffer[BUFFER_SIZE];
-    	bzero(buffer, BUFFER_SIZE);
-    	strncpy(buffer, file_name, strlen(file_name)>BUFFER_SIZE?BUFFER_SIZE:strlen(file_name));
-
-	// send buffer to server
-	for (int i = 4; i < argc; i++) {
-		if (send(socket_fd, buffer, BUFFER_SIZE, 0) < 0)
-			error_exit("send");
+	// Open the file to be sen
+	FILE *fp = fopen(argv[4], "rb");
+	if(fp == NULL) {
+		error_exit("Failed to open file");
 	}
 
-	// Wait for a while to allow all the messages to be transmitted
-	// usleep(10 * 1000);
-	// open the file, wait for writing
-    	FILE *fp = fopen(file_save_name, "w");
-    	if(NULL == fp){
-        	printf("File:\t%s Can Not Open To Write\n", file_save_name);
-        	exit(1);
-    	}
-    
-    	// Receving data from server and storing in buffer
-    	bzero(buffer, BUFFER_SIZE);
-    	int length = 0;
-    	int allCount =0;
-    	while((length = (int)recv(socket_fd, buffer, BUFFER_SIZE, 0)) > 0){
-        	if(fwrite(buffer, sizeof(char), length, fp) < length){
-            	printf("File:\t%s Write Failed\n", file_name);
-            	break;
-        	}
-        	allCount+=length;
-        	bzero(buffer, BUFFER_SIZE);
-    	}
-    
-    	// After receiving, close file and socket
-    	printf("Receive File:\t%s From Server IP Successful! 共%dK\n", file_save_name,allCount);
-    	fclose(fp);
+	// read and send the file
+	sendfile(fp, socket_fd);
+	puts("Send successfully");
+		
+	// Close the file
+	fclose(fp);
 
 	close(socket_fd);
 	return 0;
+}
+
+void sendfile(FILE *fp, int socket_fd) {
+	int n = 0;
+	char sendline[BUFFER_SIZE];
+	bzero(sendline, BUFFER_SIZE);
+	while(n = fread(sendline, sizeof(char), BUFFER_SIZE, fp) > 0) {
+		if (send(socket_fd, sendline, n, 0) < 0) {
+			perror("Failed to send file");
+			exit(0);
+		}
+		bzero(sendline, BUFFER_SIZE); // clear the send buffer
+	}
 }
