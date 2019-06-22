@@ -11,7 +11,7 @@
 
 #define PORT 1337
 #define SERVICE_CODE 42
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE 512
 
 void writefile(int sock_fd, FILE *fp);
 
