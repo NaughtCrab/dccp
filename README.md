@@ -1,5 +1,5 @@
 # DCCP proctocol
-To evaluate the performance MP-DCCP protocol in two path network. The code is changed based on DCCP protocol, it should be run under specified ubuntu kernel version 4.15.0-55, and install the supports for DCCP proctrol.  
+To evaluate the performance MP-DCCP protocol in two path network. The code is changed based on DCCP protocol API, it should be run under specified ubuntu kernel version 4.15.0-55, and install the supports for DCCP proctrol.  
 Before the file transimission, net.py is used create two-host with two channels.  
 -i: define the bandwidth of the first channel  
 -o: define the bandwidth of the second channel  
