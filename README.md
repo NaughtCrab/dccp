@@ -1,6 +1,6 @@
 # DCCP proctocol
-To evaluate MP-DCCP protocol in two path network. Before the file transimission, net.py is used create two host with two channels. 
--i: define the bandwidth of the first channel 
+To evaluate MP-DCCP protocol in two path network. Before the file transimission, net.py is used create two host with two channels. \n
+-i: define the bandwidth of the first channel \n
 -o: define the bandwidth of the second channel
 ## Create the network
     sudo python net.py -i 8 -o 2
